@@ -20,7 +20,7 @@ GUILD = os.getenv('DISCORD_GUILD')
 bot = commands.Bot(command_prefix='$')
 
 # -- COGS --
-COGS = [ "bot.init" ]
+COGS = [ "bot.recording" ]
 
 desc = '''
 Botler is a discord RP utility bot that will facilitate LARP
@@ -44,10 +44,6 @@ async def on_ready():
     log.info('---------')
     for guild in bot.guilds:
         log.info(f'{guild.name}(id: {guild.id})')
-        for member in guild.members:
-            log.debug(f'{member.display_name} - ')
-            for role in member.roles:
-                log.debug(f'\t{role.name}')
 
 @bot.event
 async def on_resumed():
@@ -58,6 +54,7 @@ async def on_command_error(ctx, error):
     log.warning("Error caused by message: `{}`".format(ctx.message.content))
     for line in traceback.format_exception(type(error), error, error.__traceback__):
         log.warning(line)
+
 
 for cog in COGS:
     log.info(f'Loading cog: {cog}')
