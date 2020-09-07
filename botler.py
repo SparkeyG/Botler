@@ -20,7 +20,7 @@ GUILD = os.getenv('DISCORD_GUILD')
 bot = commands.Bot(command_prefix='$')
 
 # -- COGS --
-COGS = [ "bot.recording" ]
+COGS = [ "bot.recording", "bot.challenge" ]
 
 desc = '''
 Botler is a discord RP utility bot that will facilitate LARP

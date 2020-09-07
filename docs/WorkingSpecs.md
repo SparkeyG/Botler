@@ -7,6 +7,6 @@ First Sprint Targets
 Second Sprint Targets
 - [ ] Erase recorded messages
 - [ ] Ask/Store personal and st email
-- [ ] Move email conf to .env file
+- [x] Move email conf to .env file
 - [ ] RPS basics
 - [ ] RPS images

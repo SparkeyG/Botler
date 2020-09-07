@@ -9,7 +9,6 @@ import os
 from dotenv import load_dotenv
 load_dotenv(verbose=True)
 
-
 UserObj = t.Union[Member, User]
 
 def send_msg(to, subject, body):
@@ -29,17 +28,6 @@ class Recording(Cog):
         self.bot = bot
         self._recording_channels = {}
         self._message_log = {}
-
-    @command(name='test')
-    async def test(self, ctx):
-        channel_embed = Embed(
-            title='Initive Tracker',
-            colour=Colour(0xE5E242),
-            description="Let's get ready to rumble"
-        )
-        channel_embed.set_author(name=self.bot.user.display_name,
-                                 icon_url=self.bot.user.avatar_url)
-        await ctx.send(embed=channel_embed)
 
     @command(name='record_start')
     async def msg_record(self, ctx):
@@ -75,6 +63,7 @@ class Recording(Cog):
                                                   before=ctx.message)
                 await ctx.channel.send('Chat log sent and messages purged')
                 await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
+                self._message_log[channel] = None
 
 def is_pinned_message(m):
     return not m.pinned
