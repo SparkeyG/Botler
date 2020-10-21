@@ -48,22 +48,34 @@ class Recording(Cog):
     @command(name='record_send')
     async def msg_log_send(self, ctx, *, send_to='shawn.c.carroll@gmail.com'):
         channel = ctx.channel.id
-        if channel in self._recording_channels:
-            async with ctx.channel.typing():
-                email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
-                email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
+        async with ctx.channel.typing():
+            email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
+            email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
+            if channel in self._recording_channels:
                 for msg in self._message_log[channel]:
                     msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
                     email_msg = email_msg + f"{msg.author.name}({msg.author.nick}) @ {msg_time} : {msg.content}\n";
-                send_msg(to=send_to,subject='Discord Chat Log', body=email_msg)
-                deleted = await ctx.channel.purge(oldest_first=True,
-                                                  bulk=True,
-                                                  limit=4000000,
-                                                  check=is_pinned_message,
-                                                  before=ctx.message)
-                await ctx.channel.send('Chat log sent and messages purged')
-                await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
-                self._message_log[channel] = None
+            else:
+                start = False
+                async for msg in ctx.channel.history(limit=None,
+                                                     oldest_first=True):
+                    if not start:
+                        if "$record_start" not in msg.content:
+                            continue
+                        else:
+                            start = True
+                    msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
+                    email_msg = email_msg + f"{msg.author.name}({msg.author.nick}) @ {msg_time} : {msg.content}\n";
+
+            send_msg(to=send_to,subject='Discord Chat Log', body=email_msg)
+            deleted = await ctx.channel.purge(oldest_first=True,
+                                              bulk=True,
+                                              limit=4000000,
+                                              check=is_pinned_message,
+                                              before=ctx.message)
+            await ctx.channel.send('Chat log sent and messages purged')
+            await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
+            self._message_log[channel] = None
 
 def is_pinned_message(m):
     return not m.pinned
