@@ -45,16 +45,45 @@ class Recording(Cog):
         if message.channel.id in self._recording_channels:
             self._message_log[message.channel.id].append(message)
 
+    @command(name='room_clean')
+    async def msg_room_clean(self, ctx, *, send_to='shawn.c.carroll@gmail.com'):
+        channel = ctx.channel.id
+        async with ctx.channel.typing():
+            email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
+            email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
+            start = False
+            async for msg in ctx.channel.history(limit=None,
+                                                 oldest_first=True):
+                msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
+                # TODO: get the author, determine if it is a User or a Member (Members have nicks
+                # TODO: get msg.content and parse it for user_ids and replace w/ display_names
+                # TODO: use guild.get_member(user_id) to return a member in order to get nick...
+                #
+                email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.content}\n";
+
+            send_msg(to=send_to,subject='Discord Chat Log', body=email_msg)
+            deleted = await ctx.channel.purge(oldest_first=True,
+                                              bulk=True,
+                                              limit=4000000,
+                                              check=is_pinned_message,
+                                              before=ctx.message)
+            await ctx.channel.send('Chat log sent and messages purged')
+            await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
+            self._message_log[channel] = None
+
+
+
     @command(name='record_send')
     async def msg_log_send(self, ctx, *, send_to='shawn.c.carroll@gmail.com'):
         channel = ctx.channel.id
         async with ctx.channel.typing():
             email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
             email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
+            # TODO: get rid of the recording_channels, only use the search
             if channel in self._recording_channels:
                 for msg in self._message_log[channel]:
                     msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
-                    email_msg = email_msg + f"{msg.author.name}({msg.author.nick}) @ {msg_time} : {msg.content}\n";
+                    email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.content}\n";
             else:
                 start = False
                 async for msg in ctx.channel.history(limit=None,
@@ -65,7 +94,11 @@ class Recording(Cog):
                         else:
                             start = True
                     msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
-                    email_msg = email_msg + f"{msg.author.name}({msg.author.nick}) @ {msg_time} : {msg.content}\n";
+                    # TODO: get the author, determine if it is a User or a Member (Members have nicks
+                    # TODO: get msg.content and parse it for user_ids and replace w/ display_names
+                    # TODO: use guild.get_member(user_id) to return a member in order to get nick...
+                    #
+                    email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.content}\n";
 
             send_msg(to=send_to,subject='Discord Chat Log', body=email_msg)
             deleted = await ctx.channel.purge(oldest_first=True,
