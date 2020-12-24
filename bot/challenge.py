@@ -11,7 +11,7 @@ class Challenge(Cog):
         self._message_log = {}
 
 
-    @command(name='test')
+    @command(name='test', hidden='True')
     async def test(self, ctx):
         channel_embed = Embed(
             title='Initive Tracker',

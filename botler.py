@@ -10,14 +10,20 @@ import typing
 import d20
 import discord
 from discord.ext import commands
+from cogwatch import Watcher
+from pretty_help import PrettyHelp
 
 from dotenv import load_dotenv
 load_dotenv(verbose=True)
+intents = discord.Intents.default()
+intents.members = True
 
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 
-bot = commands.Bot(command_prefix='$')
+bot = commands.Bot(command_prefix='$',
+                   help_command=PrettyHelp(),
+                   intents=intents)
 
 # -- COGS --
 COGS = [ "bot.recording", "bot.challenge" ]
@@ -42,6 +48,8 @@ async def on_ready():
     log.info(bot.user.name)
     log.info(bot.user.id)
     log.info('---------')
+    watcher = Watcher(bot, cogs_path='bot')
+    await watcher.start()
     for guild in bot.guilds:
         log.info(f'{guild.name}(id: {guild.id})')
 
