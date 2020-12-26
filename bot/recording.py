@@ -4,7 +4,7 @@ import typing as t
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-
+from pprint import pprint
 import os
 from dotenv import load_dotenv
 load_dotenv(verbose=True)
@@ -55,11 +55,7 @@ class Recording(Cog):
             async for msg in ctx.channel.history(limit=None,
                                                  oldest_first=True):
                 msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
-                # TODO: get the author, determine if it is a User or a Member (Members have nicks
-                # TODO: get msg.content and parse it for user_ids and replace w/ display_names
-                # TODO: use guild.get_member(user_id) to return a member in order to get nick...
-                #
-                email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.content}\n";
+                email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.clean_content}\n";
 
             send_msg(to=send_to,subject='Discord Chat Log', body=email_msg)
             deleted = await ctx.channel.purge(oldest_first=True,
@@ -83,7 +79,7 @@ class Recording(Cog):
             if channel in self._recording_channels:
                 for msg in self._message_log[channel]:
                     msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
-                    email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.content}\n";
+                    email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.clean_content}\n";
             else:
                 start = False
                 async for msg in ctx.channel.history(limit=None,
@@ -94,11 +90,8 @@ class Recording(Cog):
                         else:
                             start = True
                     msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
-                    # TODO: get the author, determine if it is a User or a Member (Members have nicks
-                    # TODO: get msg.content and parse it for user_ids and replace w/ display_names
-                    # TODO: use guild.get_member(user_id) to return a member in order to get nick...
-                    #
-                    email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.content}\n";
+                    author_as_member = ctx.guild.get_member(msg.author.id)
+                    email_msg = email_msg + f"{author_as_member.name}({author_as_member.nick}) @ {msg_time} : {msg.clean_content}\n";
 
             send_msg(to=send_to,subject='Discord Chat Log', body=email_msg)
             deleted = await ctx.channel.purge(oldest_first=True,
