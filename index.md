@@ -19,6 +19,7 @@ record_start is used to signal the bot to start recording
 record_send is used to stop recording and send to one or more email addresses. The room will then be cleared of non-pinned messages
 
 `$record_send test@test.com`
+
 `$record_send test@test.com, bob@test.com`
 
 * room_clean is used to erase the whole room
@@ -26,4 +27,5 @@ record_send is used to stop recording and send to one or more email addresses. T
 You may send the room's contents to an email address
 
 `$room_clean`
+
 `$room_clean test@test.com`
