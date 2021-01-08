@@ -1,10 +1,18 @@
-## Welcome to GitHub Pages
+## Welcome to the ChatBot home page
 
-You can use the [editor on GitHub](https://github.com/SparkeyG/Botler/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+This is a simple bot for the recording and sending of messages in a discord server to an email address.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
 
-### Markdown
+### Recording
+
+These commands will assist in recording and sending logs of a room's
+messages. They will also clean a room
+- record_send
+record_send is used to stop recording and send to one or more email
+- record_start
+record_start is used to signal the bot to start recording
+- room_clean
+room_clean is used to erase the whole room
 
 Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
 
@@ -25,13 +33,3 @@ Syntax highlighted code block
 
 [Link](url) and ![Image](src)
 ```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/SparkeyG/Botler/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
