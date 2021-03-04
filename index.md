@@ -2,7 +2,7 @@
 
 This is a simple bot for the recording and sending of messages in a discord server to an email address.
 
-[Add the Bot to your Server](https://discord.com/api/oauth2/authorize?client_id=722258350481473576&permissions=8&scope=bot)
+<iframe src="https://discord.com/widget?id=747604967828881521&theme=dark" width="350" height="500" allowtransparency="true" frameborder="0" sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"></iframe>
 
 ### Recording
 
