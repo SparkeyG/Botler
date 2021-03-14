@@ -33,6 +33,7 @@ class Recording(Cog):
         self.bot = bot
         self._recording_channels = {}
         self._message_log = {}
+        self._time_fmt_str = '%Y-%m-%d %H:%M:%S UTC '
         with open('email.yaml') as file:
             self._email_list = yaml.load(file, Loader=yaml.FullLoader)
 
@@ -69,7 +70,7 @@ class Recording(Cog):
             start = False
             async for msg in ctx.channel.history(limit=None,
                                                  oldest_first=True):
-                msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
+                msg_time = msg.created_at.strftime(self._time_fmt_str)
                 email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.clean_content}\n";
 
             if send_to:
@@ -104,8 +105,11 @@ class Recording(Cog):
                 # TODO: get rid of the recording_channels, only use the search
                 if channel in self._recording_channels:
                     for msg in self._message_log[channel]:
-                        msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
-                        email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.clean_content}\n";
+                        edited_msg = ''
+                        if msg.edited_at:
+                            edited_msg = '(edited)'
+                        msg_time = msg.created_at.strftime(self._time_fmt_str)
+                        email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.clean_content} {edited_msg}\n";
                 else:
                     start = False
                     async for msg in ctx.channel.history(limit=None,
@@ -115,7 +119,7 @@ class Recording(Cog):
                                 continue
                             else:
                                 start = True
-                        msg_time = msg.created_at.strftime('%Y-%m-%d %H:%M:%S ')
+                        msg_time = msg.created_at.strftime(self._time_fmt_str)
                         author_as_member = ctx.guild.get_member(msg.author.id)
                         email_msg = email_msg + f"{author_as_member.name}({author_as_member.nick}) @ {msg_time} : {msg.clean_content}\n";
                     if not start:
