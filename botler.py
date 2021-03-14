@@ -26,7 +26,7 @@ bot = commands.Bot(command_prefix='$',
                    intents=intents)
 
 # -- COGS --
-COGS = [ "bot.recording", "bot.challenge" ]
+COGS = [ "bot.recording", "bot.challenge", "bot.room" ]
 
 desc = '''
 Botler is a discord RP utility bot that will facilitate LARP
