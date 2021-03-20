@@ -37,17 +37,14 @@ class Recording(Cog):
         with open('email.yaml') as file:
             self._email_list = yaml.load(file, Loader=yaml.FullLoader)
 
-    @command(name='record_start')
-    async def msg_record(self, ctx):
-        """ $record_start is used to signal the bot to start recording
-        $record_start
-        """
-        recording_requester = ctx.author.display_name
-        recording_channel = ctx.channel
-        self._recording_channels[recording_channel.id] = {'channel': recording_channel.name,
-                                                          'request': recording_requester}
-        self._message_log[recording_channel.id] = []
-        await ctx.send(f'{recording_requester} asked for {recording_channel.name} to be recorded')
+    @Cog.listener()
+    async def on_guild_join(self, guild):
+        await guild.system_channel.send('Hello, I am a friendly bot to manage rooms.')
+        await guild.system_channel.send('For more information, `$help` to get more info,')
+        if guild.id not in self._email_list:
+            await guild.system_channel.send('It appears that I am new here.')
+            await guild.system_channel.send('Please have an admin add a bcc address to receive logs')
+            await guild.system_channel.send('Recording cannot start without it')
 
     @Cog.listener()
     async def on_message(self, message):
@@ -56,6 +53,44 @@ class Recording(Cog):
         if message.channel.id in self._recording_channels:
             self._message_log[message.channel.id].append(message)
 
+    @command(name='change_bcc_email', hidden=True)
+    async def change_bcc_email(self, ctx, *, bcc_email=None):
+        """ $change_bcc_email is used to set/change the bcc email address
+        $change_bcc_email admin@test.com
+        """
+        change_requestor = ctx.author
+        has_admin_rights = change_requestor.guild_permissions.administrator
+        if not has_admin_rights:
+            await ctx.channel.send('You are not an admin and cannot do that')
+        elif not bcc_email:
+            await ctx.channel.send('You need to supply the address to use')
+        else:
+            if ctx.guild.id not in self._email_list:
+                self._email_list[ctx.guild.id] = {}
+            self._email_list[ctx.guild.id]['email-bcc'] = bcc_email
+            with open('email.yaml', 'w') as file:
+                yaml.dump(self._email_list, file)
+                # TODO all cogs need to know to reread yaml....
+            await ctx.channel.send('Setting the email-bcc for this server')
+
+    @command(name='record_start')
+    async def msg_record(self, ctx):
+        """ $record_start is used to signal the bot to start recording
+        $record_start
+        """
+        if ctx.guild.id not in self._email_list:
+            await ctx.channel.send('It appears that I am new here.')
+            await ctx.channel.send('Please have an admin add a bcc address to receive logs')
+            await ctx.channel.send('Recording cannot start without it')
+            return
+
+        recording_requester = ctx.author.display_name
+        recording_channel = ctx.channel
+        self._recording_channels[recording_channel.id] = {'channel': recording_channel.name,
+                                                          'request': recording_requester}
+        self._message_log[recording_channel.id] = []
+        await ctx.send(f'{recording_requester} asked for {recording_channel.name} to be recorded')
+
     @command(name='room_clean')
     async def msg_room_clean(self, ctx, *, send_to=None):
         """ $room_clean is used to erase the whole room
@@ -63,13 +98,22 @@ class Recording(Cog):
         $room_clean
         $room_clean test@test.com
         """
+        if ctx.guild.id not in self._email_list:
+            await ctx.channel.send('It appears that I am new here.')
+            await ctx.channel.send('Please have an admin add a bcc address to receive logs')
+            await ctx.channel.send('Recording cannot start without it')
+            return
+
         channel = ctx.channel.id
         async with ctx.channel.typing():
             email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
             email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
             start = False
+            first_msg = False
             async for msg in ctx.channel.history(limit=None,
                                                  oldest_first=True):
+                if not first_msg:
+                    first_msg = msg
                 msg_time = msg.created_at.strftime(self._time_fmt_str)
                 email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.clean_content}\n";
 
@@ -81,11 +125,11 @@ class Recording(Cog):
                                               bulk=True,
                                               limit=4000000,
                                               check=is_pinned_message,
+                                              after=first_msg,
                                               before=ctx.message)
             await ctx.channel.send('Chat log sent and messages purged')
             await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
             self._message_log[channel] = None
-
 
     @command(name='record_send')
     async def msg_log_send(self, ctx, *, send_to=None):
@@ -99,6 +143,7 @@ class Recording(Cog):
         if send_to is None:
             await ctx.channel.send('Chat log cannot be sent, please try again and add a receipent')
         else:
+            start = False
             async with ctx.channel.typing():
                 email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
                 email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
@@ -111,14 +156,13 @@ class Recording(Cog):
                         msg_time = msg.created_at.strftime(self._time_fmt_str)
                         email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.clean_content} {edited_msg}\n";
                 else:
-                    start = False
                     async for msg in ctx.channel.history(limit=None,
                                                          oldest_first=True):
                         if not start:
                             if "$record_start" not in msg.content:
                                 continue
                             else:
-                                start = True
+                                start = msg
                         msg_time = msg.created_at.strftime(self._time_fmt_str)
                         author_as_member = ctx.guild.get_member(msg.author.id)
                         email_msg = email_msg + f"{author_as_member.name}({author_as_member.nick}) @ {msg_time} : {msg.clean_content}\n";
@@ -134,7 +178,8 @@ class Recording(Cog):
                                                   bulk=True,
                                                   limit=4000000,
                                                   check=is_pinned_message,
-                                                  before=ctx.message)
+                                                  before=ctx.message,
+                                                  after=start)
                 await ctx.channel.send('Chat log sent and messages purged')
                 await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
                 self._message_log[channel] = None
