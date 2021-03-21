@@ -101,7 +101,6 @@ class Recording(commands.Cog):
             Recording._email_list[ctx.guild.id]['email-bcc'] = bcc_email
             with open('email.yaml', 'w') as file:
                 yaml.dump(Recording._email_list, file)
-                # TODO all cogs need to know to reread yaml....
             await ctx.channel.send('Setting the email-bcc for this server')
 
     @commands.command(name='record_start')
@@ -125,50 +124,29 @@ class Recording(commands.Cog):
         $record_send test@test.com, bob@test.com
 
         """
-        channel = ctx.channel.id
         if send_to is None:
             await ctx.channel.send(
                 'Chat log cannot be sent, please try again and add a receipent'
             )
-        else:
-            start = False
-            async with ctx.channel.typing():
-                email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
-                email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
-                async for msg in ctx.channel.history(limit=None,
-                                                     oldest_first=True):
-                    if not start:
-                        if "$record_start" not in msg.content:
-                            continue
-                        else:
-                            start = msg
-                            await msg.delete()
-                    edited_msg = ''
-                    if msg.edited_at:
-                        edited_msg = '(edited)'
-                    msg_time = msg.created_at.strftime(self._time_fmt_str)
-                    author_as_member = ctx.guild.get_member(msg.author.id)
-                    email_msg = email_msg + f"{author_as_member.name}({author_as_member.nick}) @ {msg_time} : {msg.clean_content} {edited_msg}\n"
-                if not start:
-                    await ctx.channel.send(
-                        'Trying to send log w/o $record_start will not send anything. Try $room_clean'
-                    )
-                    return
+            return
 
-                send_msg(bcc=self._email_list[ctx.guild.id]['email-bcc'],
-                         to=send_to,
-                         subject='Discord Chat Log',
-                         body=email_msg)
-                deleted = await ctx.channel.purge(oldest_first=True,
-                                                  bulk=True,
-                                                  limit=4000000,
-                                                  check=is_pinned_message,
-                                                  before=ctx.message,
-                                                  after=start)
-                await ctx.message.delete()
-                await ctx.channel.send('Chat log sent and messages purged')
-                await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
-                self._message_log[channel] = None
+        async with ctx.channel.typing():
+            first_msg = False
+            async for message in ctx.channel.history(limit=None,
+                                                     oldest_first=True):
+                if "$record_start" in message.content:
+                    first_msg = message
+                    break
+            if not first_msg:
+                await ctx.channel.send(
+                    'Trying to send log w/o $record_start will not send anything. Try $room_clean'
+                )
+                return
+            await self._send_and_clean(first=first_msg,
+                                       last=ctx.message,
+                                       send_to=send_to,
+                                       ctx=ctx)
+
 
     @commands.command(name='room_clean')
     @is_configured()
@@ -178,35 +156,47 @@ class Recording(commands.Cog):
         $room_clean
         $room_clean test@test.com
         """
+        fist_msg=False
 
-        channel = ctx.channel.id
         async with ctx.channel.typing():
-            email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
-            email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
-            start = False
-            first_msg = False
-            async for msg in ctx.channel.history(limit=None,
+            async for msg in ctx.channel.history(limit=1,
                                                  oldest_first=True):
-                if not first_msg:
-                    first_msg = msg
-                msg_time = msg.created_at.strftime(self._time_fmt_str)
-                email_msg = email_msg + f"{msg.author.name}({msg.author.display_name}) @ {msg_time} : {msg.clean_content}\n"
+                first_msg = msg
+            if not send_to:
+                send_to = self._email_list[ctx.guild.id]['email-bcc']
+            await self._send_and_clean(first=first_msg,
+                                       last=ctx.message,
+                                       send_to=send_to,
+                                       ctx=ctx)
 
-            if send_to:
-                sent_to = self._email_list[ctx.guild.id]['email-bcc']
-            send_msg(bcc=self._email_list[ctx.guild.id]['email-bcc'],
-                     to=send_to,
-                     subject='Discord Chat Log',
-                     body=email_msg)
-            deleted = await ctx.channel.purge(oldest_first=True,
-                                              bulk=True,
-                                              limit=4000000,
-                                              check=is_pinned_message,
-                                              after=first_msg,
-                                              before=ctx.message)
-            await ctx.channel.send('Chat log sent and messages purged')
-            await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
-            self._message_log[channel] = None
+    async def _send_and_clean(self, first, last, send_to, ctx):
+        #TODO: variable checking
+        email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
+        email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
+        async for message in ctx.channel.history(limit=None,
+                                             after=first,
+                                             before=last,
+                                             oldest_first=True
+                                             ):
+            edited_msg = ''
+            if message.edited_at:
+                edited_msg = '(edited)'
+            msg_time = message.created_at.strftime(self._time_fmt_str)
+            author_as_member = ctx.guild.get_member(message.author.id)
+            email_msg = email_msg + f"{author_as_member.name}({author_as_member.nick}) @ {msg_time} : {message.clean_content} {edited_msg}\n"
+        send_msg(bcc=self._email_list[ctx.guild.id]['email-bcc'],
+                 to=send_to,
+                 subject='Discord Chat Log',
+                 body=email_msg)
+        deleted = await ctx.channel.purge(oldest_first=True,
+                                          bulk=True,
+                                          limit=4000000,
+                                          check=is_pinned_message,
+                                          after=first,
+                                          before=last)
+        await first.delete()
+        await ctx.channel.send('Chat log sent and messages purged')
+        await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
 
 
 def setup(bot):
