@@ -19,6 +19,7 @@ class ErrorHandler(commands.Cog):
                 ctx.cog, f"_{ctx.command.cog_name}__error")) and not bypass):
             return
         if isinstance(error, commands.CommandNotFound):
+            await ctx.send(f'Sorry, I don\'t understand `{ctx.message.content}`')
             return
         elif isinstance(error, commands.NoPrivateMessage):
             await ctx.send(embed=discord.Embed(
