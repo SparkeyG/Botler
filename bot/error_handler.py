@@ -25,8 +25,22 @@ class ErrorHandler(commands.Cog):
             await ctx.send(embed=discord.Embed(
                 title="Command Unavailable",
                 description="This command cannot be used in Direct Message.",
-                colour=self.bot.error_colour,
             ))
+        elif isinstance(error, commands.CommandInvokeError):
+            log.error(
+                f"{error.original.__class__.__name__}: {error.original} (In {ctx.command.name})\n"
+                f"Traceback:\n{''.join(traceback.format_tb(error.original.__traceback__))}"
+            )
+            try:
+                await ctx.send(
+                    embed=discord.Embed(
+                        title="Unknown Error",
+                        description="Please report this in the support server.\n"
+                        f"```{error.original.__class__.__name__}: {error.original}```",
+                    )
+                )
+            except Exception:
+                pass
 
 
 def setup(bot):

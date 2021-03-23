@@ -183,7 +183,12 @@ class Recording(commands.Cog):
                 edited_msg = '(edited)'
             msg_time = message.created_at.strftime(self._time_fmt_str)
             author_as_member = ctx.guild.get_member(message.author.id)
-            email_msg = email_msg + f"{author_as_member.name}({author_as_member.nick}) @ {msg_time} : {message.clean_content} {edited_msg}\n"
+            display_name = ''
+            if author_as_member:
+                display_name = author_as_member.nick
+            else:
+                display_name = message.author.display_name
+            email_msg = email_msg + f"{message.author}({display_name}) @ {msg_time} : {message.clean_content} {edited_msg}\n"
         send_msg(bcc=self._email_list[ctx.guild.id]['email-bcc'],
                  to=send_to,
                  subject='Discord Chat Log',
