@@ -1,14 +1,4 @@
-from discord import Member, User, Colour, Embed, utils, Message, TextChannel
-from discord.ext.commands import Cog, Context, command, group, Bot
-import typing as t
-import logging
-from pprint import pprint
-import os
-import sys
-import yaml
-
-from dotenv import load_dotenv
-load_dotenv(verbose=True)
+from discord.ext.commands import Bot, Cog, command
 
 
 class Room(Cog):
@@ -23,9 +13,9 @@ class Room(Cog):
         self.building_map = []
         for guild in bot.guilds:
             for room in guild.channel:
-                self.building_map.append(f'{guild.name} - {room.category} -> {room.name}')
+                self.building_map.append(f"{guild.name} - {room.category}" + " -> {room.name}")
 
-    @command(name='enter_building', hidden='True')
+    @command(name="enter_building", hidden="True")
     async def building_enter(self, ctx, *, building=None):
         building_name = building
         await ctx.send(self.building_map)

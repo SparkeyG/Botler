@@ -1,3 +1,5 @@
 *pyc
 .env
-email.yaml
+*.yaml
+*.json
+config.py
