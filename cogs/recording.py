@@ -50,7 +50,8 @@ class Recording(commands.Cog):
         self.bot = bot
         self._recording_channels = {}
         self._message_log = {}
-        self._time_fmt_str = "%Y-%m-%d %H:%M:%S UTC "
+        self._date_fmt_str = "%Y-%m-%d"
+        self._time_fmt_str = "%H:%M:%S UTC "
         Recording.not_configured_embed = Embed(
             description="It appears that I am new here.\n"
             f"Please have an admin run `{bot.command_prefix}change_bcc_email` to receive logs\n"
@@ -150,20 +151,30 @@ class Recording(commands.Cog):
         # TODO: variable checking
         email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
         email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
+        last_name = ""
+        last_date = ""
         async for message in ctx.channel.history(limit=None, after=first, before=last, oldest_first=True):
+            display_name = ""
             edited_msg = ""
+            author_name = message.author.name
+            msg_date = message.created_at.strftime(self._date_fmt_str)
+            if msg_date != last_date:
+                email_msg = email_msg + f"Message date is {msg_date}"
+            if author_name == last_name:
+                prefix_string = "                                     "
+            else:
+                author_as_member = ctx.guild.get_member(message.author.id)
+                if author_as_member:
+                    display_name = author_as_member.nick
+                else:
+                    display_name = message.author.display_name
+                msg_time = message.created_at.strftime(self._time_fmt_str)
+                prefix_string = f"\n{author_name!s:<10.10}({display_name!s:^10.10}) @ {msg_time!s:<12.12}"
             if message.edited_at:
                 edited_msg = "(edited)"
-            msg_time = message.created_at.strftime(self._time_fmt_str)
-            author_as_member = ctx.guild.get_member(message.author.id)
-            display_name = ""
-            if author_as_member:
-                display_name = author_as_member.nick
-            else:
-                display_name = message.author.display_name
-            email_msg = (
-                email_msg + f"{message.author}({display_name}) @ {msg_time} : {message.clean_content} {edited_msg}\n"
-            )
+            email_msg = email_msg + f"{prefix_string} : {message.clean_content} {edited_msg}\n"
+            last_name = author_name
+            last_date = msg_date
         send_msg(
             bcc=self._email_list[ctx.guild.id]["email-bcc"], to=send_to, subject="Discord Chat Log", body=email_msg
         )
