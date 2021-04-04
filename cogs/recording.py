@@ -1,4 +1,5 @@
 import smtplib
+from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -149,6 +150,14 @@ class Recording(commands.Cog):
 
     async def _send_and_clean(self, first, last, send_to, ctx):
         # TODO: variable checking
+        now = datetime.now()
+        date_time = now.strftime("%Y-%m-%d")
+        room_name = ""
+        if ctx.channel.category is not None:
+            room_name = f"{ctx.channel.category}/{ctx.channel.name}"
+        else:
+            room_name = ctx.channel.name
+        email_subject = f"Discord Chat Log: {ctx.guild.name} - {room_name} - {date_time}"
         email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
         email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
         last_name = ""
@@ -175,9 +184,7 @@ class Recording(commands.Cog):
             email_msg = email_msg + f"{prefix_string} : {message.clean_content} {edited_msg}\n"
             last_name = author_name
             last_date = msg_date
-        send_msg(
-            bcc=self._email_list[ctx.guild.id]["email-bcc"], to=send_to, subject="Discord Chat Log", body=email_msg
-        )
+        send_msg(bcc=self._email_list[ctx.guild.id]["email-bcc"], to=send_to, subject=email_subject, body=email_msg)
         deleted = await ctx.channel.purge(
             oldest_first=True, bulk=True, limit=4000000, check=is_pinned_message, after=first, before=last
         )
