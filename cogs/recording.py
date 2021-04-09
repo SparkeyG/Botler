@@ -151,7 +151,7 @@ class Recording(commands.Cog):
     async def _send_and_clean(self, first, last, send_to, ctx):
         # TODO: variable checking
         now = datetime.now()
-        date_time = now.strftime("%Y-%m-%d")
+        date_time = now.strftime(self._date_fmt_str)
         room_name = ""
         if ctx.channel.category is not None:
             room_name = f"{ctx.channel.category}/{ctx.channel.name}"
