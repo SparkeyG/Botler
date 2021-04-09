@@ -185,11 +185,14 @@ class Recording(commands.Cog):
             last_name = author_name
             last_date = msg_date
         send_msg(bcc=self._email_list[ctx.guild.id]["email-bcc"], to=send_to, subject=email_subject, body=email_msg)
-        deleted = await ctx.channel.purge(
-            oldest_first=True, bulk=True, limit=4000000, check=is_pinned_message, after=first, before=last
-        )
+        await ctx.channel.send("Chat log has been sent")
+        await ctx.channel.send("I will now delete messages")
         await first.delete()
-        await ctx.channel.send("Chat log sent and messages purged")
+        deleted = await ctx.channel.purge(
+            oldest_first=True, bulk=True, limit=4000000,
+            check=is_pinned_message, after=first, before=last
+        )
+        await ctx.channel.send("Messages purged")
         await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
 
 
