@@ -182,6 +182,8 @@ class Recording(commands.Cog):
             if message.edited_at:
                 edited_msg = "(edited)"
             email_msg = email_msg + f"{prefix_string} : {message.clean_content} {edited_msg}\n"
+            for attachment in message.attachments:
+                email_msg = email_msg + f"{attachment.url}"
             last_name = author_name
             last_date = msg_date
         send_msg(bcc=self._email_list[ctx.guild.id]["email-bcc"], to=send_to, subject=email_subject, body=email_msg)
@@ -192,8 +194,7 @@ class Recording(commands.Cog):
             oldest_first=True, bulk=True, limit=4000000,
             check=is_pinned_message, after=first, before=last
         )
-        await ctx.channel.send("Messages purged")
-        await ctx.channel.send(f"\tremoved {len(deleted)} message(s)")
+        await ctx.channel.send(f"Messages purged: removed {len(deleted)} message(s)")
 
 
 def setup(bot):
