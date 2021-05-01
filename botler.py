@@ -33,7 +33,7 @@ RP on a discord server.
 <Info on commands and inviting to a server to come later>
 """
 
-log_formatter = logging.Formatter("%(levelname)s:%(name)s: %(message)s")
+log_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s: %(message)s")
 handler = logging.StreamHandler(sys.stdout)
 handler.setFormatter(log_formatter)
 logger = logging.getLogger()
