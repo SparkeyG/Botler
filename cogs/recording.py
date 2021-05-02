@@ -27,6 +27,11 @@ def is_pinned_message(m):
     return not m.pinned
 
 
+def chunk(lst):
+    for i in range(0, len(lst), 100):
+        yield lst[i:i+100]
+
+
 def is_configured():
     async def predicate(ctx):
         if ctx.guild.id not in Recording._email_list:
@@ -96,6 +101,13 @@ class Recording(commands.Cog):
             with open("email.yaml", "w") as file:
                 yaml.dump(Recording._email_list, file)
             await ctx.channel.send("Setting the email-bcc for this server")
+    """
+    @commands.command(name="flood_room", hidden=True)
+    @is_configured()
+    async def flood_room(self, ctx):
+        for i in range(0, 120):
+            await ctx.channel.send(f'flooding {i}')
+    """
 
     @commands.command(name="record_start")
     @is_configured()
@@ -160,41 +172,56 @@ class Recording(commands.Cog):
         email_subject = f"Discord Chat Log: {ctx.guild.name} - {room_name} - {date_time}"
         email_msg = f"This is a chat log from the {ctx.guild.name} discord server\n"
         email_msg = email_msg + f"\tThis occured in the {ctx.channel.name} channel\n"
-        last_name = ""
-        last_date = ""
+        msg_count = 1
+        msg_list = []
+        email_msg, last_name, last_date = await self._append_message(ctx, email_msg, first, '', '')
         async for message in ctx.channel.history(limit=None, after=first, before=last, oldest_first=True):
-            display_name = ""
-            edited_msg = ""
-            author_name = message.author.name
-            msg_date = message.created_at.strftime(self._date_fmt_str)
-            if msg_date != last_date:
-                email_msg = email_msg + f"Message date is {msg_date}"
-            if author_name == last_name:
-                prefix_string = "                                     "
-            else:
-                author_as_member = ctx.guild.get_member(message.author.id)
-                if author_as_member:
-                    display_name = author_as_member.nick
-                else:
-                    display_name = message.author.display_name
-                msg_time = message.created_at.strftime(self._time_fmt_str)
-                prefix_string = f"\n{author_name!s:<10.10}({display_name!s:^10.10}) @ {msg_time!s:<12.12}"
-            if message.edited_at:
-                edited_msg = "(edited)"
-            email_msg = email_msg + f"{prefix_string} : {message.clean_content} {edited_msg}\n"
-            for attachment in message.attachments:
-                email_msg = email_msg + f"{attachment.url}"
-            last_name = author_name
-            last_date = msg_date
+            if message.pinned:
+                continue
+            email_msg, last_name, last_date = await self._append_message(ctx, email_msg, message, last_date, last_name)
+            msg_list.append(message)
+            msg_count += 1
+        email_msg, author_name, msg_date = await self._append_message(ctx, email_msg, last, last_date, last_name)
         send_msg(bcc=self._email_list[ctx.guild.id]["email-bcc"], to=send_to, subject=email_subject, body=email_msg)
         await ctx.channel.send("Chat log has been sent")
         await ctx.channel.send("I will now delete messages")
-        await first.delete()
+        if not first.pinned:
+            await first.delete()
+        await last.delete()
+        # for msgs_chunk in chunk(msg_list):
+        # await ctx.channel.delete_messages(msgs_chunk)
+        # await ctx.channel.send(f"Messages purged: removed {len(msg_list)} message(s)")
         deleted = await ctx.channel.purge(
-            oldest_first=True, bulk=True, limit=4000000,
+            oldest_first=True, bulk=True, limit=msg_count,
             check=is_pinned_message, after=first, before=last
         )
         await ctx.channel.send(f"Messages purged: removed {len(deleted)} message(s)")
+
+    async def _append_message(self, ctx, email_msg, message, last_date, last_name):
+        display_name = ""
+        edited_msg = ""
+        author_name = message.author.name
+        msg_date = message.created_at.strftime(self._date_fmt_str)
+        if msg_date != last_date:
+            email_msg = email_msg + f"Message date is {msg_date}"
+        if author_name == last_name:
+            prefix_string = "                                     "
+        else:
+            author_as_member = ctx.guild.get_member(message.author.id)
+            if author_as_member:
+                display_name = author_as_member.nick
+            else:
+                display_name = message.author.display_name
+            msg_time = message.created_at.strftime(self._time_fmt_str)
+            prefix_string = f"\n{author_name!s:<10.10}({display_name!s:^10.10}) @ {msg_time!s:<12.12}"
+        if message.edited_at:
+            edited_msg = "(edited)"
+        email_msg = email_msg + f"{prefix_string} : {message.clean_content} {edited_msg}\n"
+        for attachment in message.attachments:
+            email_msg = email_msg + f"{attachment.url}"
+        last_name = author_name
+        last_date = msg_date
+        return email_msg, last_name, last_date
 
 
 def setup(bot):
